@@ -19,7 +19,6 @@ import toast from "react-hot-toast";
 import ChatLoader from "../components/ChatLoader";
 import CallButton from "../components/CallButton";
 
-
 const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY;
 
 const ChatPage = () => {
@@ -31,21 +30,17 @@ const ChatPage = () => {
 
   const { authUser } = useAuthUser();
 
-   const { data: tokenData } = useQuery({
+  const { data: tokenData } = useQuery({
     queryKey: ["streamToken"],
     queryFn: getStreamToken,
-    enabled: !!authUser, // this will run only when authUser is available
+    enabled: !!authUser,
   });
-
-
 
   useEffect(() => {
     const initChat = async () => {
       if (!tokenData?.token || !authUser) return;
 
       try {
-        console.log("Initializing stream chat client...");
-
         const client = StreamChat.getInstance(STREAM_API_KEY);
 
         await client.connectUser(
@@ -57,18 +52,33 @@ const ChatPage = () => {
           tokenData.token
         );
 
-        //
         const channelId = [authUser._id, targetUserId].sort().join("-");
-
-        // you and me
-        // if i start the chat => channelId: [myId, yourId]
-        // if you start the chat => channelId: [yourId, myId]  => [myId,yourId]
-
         const currChannel = client.channel("messaging", channelId, {
           members: [authUser._id, targetUserId],
         });
 
         await currChannel.watch();
+
+        // ✅ Mark messages as read
+        await currChannel.markRead();
+
+        // 🔴 Remove red dot when chat is opened
+        window.dispatchEvent(
+          new CustomEvent("message-status", {
+            detail: { userId: targetUserId, status: false },
+          })
+        );
+
+        // 🔴 Show red dot when new message received
+        currChannel.on("message.new", (event) => {
+          if (event.user.id !== authUser._id) {
+            window.dispatchEvent(
+              new CustomEvent("message-status", {
+                detail: { userId: targetUserId, status: true },
+              })
+            );
+          }
+        });
 
         setChatClient(client);
         setChannel(currChannel);
@@ -83,7 +93,7 @@ const ChatPage = () => {
     initChat();
   }, [tokenData, authUser, targetUserId]);
 
-   const handleVideoCall = () => {
+  const handleVideoCall = () => {
     if (channel) {
       const callUrl = `${window.location.origin}/call/${channel.id}`;
 
