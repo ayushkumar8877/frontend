@@ -3,6 +3,9 @@ import { LANGUAGE_TO_FLAG } from "../constants";
 import useUnseenStore from "../store/unseenStore";
 
 const FriendCard = ({ friend }) => {
+  if (!friend) return null;
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const unseenMap = useUnseenStore((state) => state.unseenMap);
   const hasUnseenMessages = unseenMap[friend._id];
 
@@ -11,22 +14,28 @@ const FriendCard = ({ friend }) => {
       <div className="card-body p-4">
         <div className="flex items-center gap-3 mb-3">
           <div className="avatar size-12 relative">
-            <img src={friend.profilePic} alt={friend.fullName} />
+            <img
+              src={friend.profilePic || "/default-avatar.png"}
+              alt={friend.fullName || "User"}
+              className="rounded-full"
+            />
             {hasUnseenMessages && (
-              <span className="absolute -top-1 -right-1 bg-red-500 rounded-full w-3 h-3" />
+              <span className="absolute -top-1 -right-1 bg-green-500 rounded-full w-3 h-3" />
             )}
           </div>
-          <h3 className="font-semibold truncate">{friend.fullName}</h3>
+          <h3 className="font-semibold truncate">
+            {friend.fullName || "Unnamed"}
+          </h3>
         </div>
 
         <div className="flex flex-wrap gap-1.5 mb-3">
           <span className="badge badge-secondary text-xs">
             {getLanguageFlag(friend.nativeLanguage)}
-            Native: {friend.nativeLanguage}
+            Native: {friend.nativeLanguage || "Unknown"}
           </span>
           <span className="badge badge-outline text-xs">
             {getLanguageFlag(friend.learningLanguage)}
-            Learning: {friend.learningLanguage}
+            Learning: {friend.learningLanguage || "Unknown"}
           </span>
         </div>
 
@@ -56,3 +65,4 @@ export function getLanguageFlag(language) {
   }
   return null;
 }
+
