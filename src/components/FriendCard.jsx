@@ -1,27 +1,20 @@
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { LANGUAGE_TO_FLAG } from "../constants";
-import { useEffect, useState } from "react";
+import useUnseenStore from "../store/unseenStore";
 
 const FriendCard = ({ friend }) => {
-  const [hasUnseenMessages, setHasUnseenMessages] = useState(false);
-
-  // Listen for custom event from ChatPage
-  useEffect(() => {
-    const handleUnseen = (e) => {
-      if (e.detail.userId === friend._id) {
-        setHasUnseenMessages(e.detail.status);
-      }
-    };
-    window.addEventListener("message-status", handleUnseen);
-    return () => window.removeEventListener("message-status", handleUnseen);
-  }, [friend._id]);
+  const unseenMap = useUnseenStore((state) => state.unseenMap);
+  const hasUnseenMessages = unseenMap[friend._id];
 
   return (
     <div className="card bg-base-200 hover:shadow-md transition-shadow">
       <div className="card-body p-4">
         <div className="flex items-center gap-3 mb-3">
-          <div className="avatar size-12">
+          <div className="avatar size-12 relative">
             <img src={friend.profilePic} alt={friend.fullName} />
+            {hasUnseenMessages && (
+              <span className="absolute -top-1 -right-1 bg-red-500 rounded-full w-3 h-3" />
+            )}
           </div>
           <h3 className="font-semibold truncate">{friend.fullName}</h3>
         </div>
@@ -39,14 +32,12 @@ const FriendCard = ({ friend }) => {
 
         <Link to={`/chat/${friend._id}`} className="btn btn-outline w-full relative">
           Message
-          {hasUnseenMessages && (
-            <span className="absolute top-1 right-2 text-red-500 text-lg">🔴</span>
-          )}
         </Link>
       </div>
     </div>
   );
 };
+
 export default FriendCard;
 
 // eslint-disable-next-line react-refresh/only-export-components

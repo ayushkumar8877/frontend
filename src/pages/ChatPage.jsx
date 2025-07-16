@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router";
+import { useParams } from "react-router-dom";
 import useAuthUser from "../hooks/useAuthUser";
 import { useQuery } from "@tanstack/react-query";
 import { getStreamToken } from "../lib/api";
@@ -18,6 +18,7 @@ import toast from "react-hot-toast";
 
 import ChatLoader from "../components/ChatLoader";
 import CallButton from "../components/CallButton";
+import useUnseenStore from "../store/unseenStore";
 
 const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY;
 
@@ -29,6 +30,8 @@ const ChatPage = () => {
   const [loading, setLoading] = useState(true);
 
   const { authUser } = useAuthUser();
+  const setUnseen = useUnseenStore((s) => s.setUnseen);
+  const clearUnseen = useUnseenStore((s) => s.clearUnseen);
 
   const { data: tokenData } = useQuery({
     queryKey: ["streamToken"],
@@ -43,14 +46,16 @@ const ChatPage = () => {
       try {
         const client = StreamChat.getInstance(STREAM_API_KEY);
 
-        await client.connectUser(
-          {
-            id: authUser._id,
-            name: authUser.fullName,
-            image: authUser.profilePic,
-          },
-          tokenData.token
-        );
+        if (!client.userID) {
+          await client.connectUser(
+            {
+              id: authUser._id,
+              name: authUser.fullName,
+              image: authUser.profilePic,
+            },
+            tokenData.token
+          );
+        }
 
         const channelId = [authUser._id, targetUserId].sort().join("-");
         const currChannel = client.channel("messaging", channelId, {
@@ -58,25 +63,13 @@ const ChatPage = () => {
         });
 
         await currChannel.watch();
-
-        // ✅ Mark messages as read
         await currChannel.markRead();
 
-        // 🔴 Remove red dot when chat is opened
-        window.dispatchEvent(
-          new CustomEvent("message-status", {
-            detail: { userId: targetUserId, status: false },
-          })
-        );
+        clearUnseen(targetUserId);
 
-        // 🔴 Show red dot when new message received
         currChannel.on("message.new", (event) => {
           if (event.user.id !== authUser._id) {
-            window.dispatchEvent(
-              new CustomEvent("message-status", {
-                detail: { userId: targetUserId, status: true },
-              })
-            );
+            setUnseen(event.user.id, true);
           }
         });
 
@@ -91,7 +84,7 @@ const ChatPage = () => {
     };
 
     initChat();
-  }, [tokenData, authUser, targetUserId]);
+  }, [tokenData, authUser, targetUserId, clearUnseen, setUnseen]);
 
   const handleVideoCall = () => {
     if (channel) {
