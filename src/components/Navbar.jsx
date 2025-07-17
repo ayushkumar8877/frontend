@@ -28,6 +28,17 @@ const Navbar = () => {
             </div>
           )}
 
+          {!isChatPage && (
+            <div className="pl-5 block lg:hidden">
+              <Link to="/" className="flex items-center gap-2.5">
+                <ShipWheelIcon className="size-9 text-primary" />
+                <span className="text-3xl font-bold font-mono bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-wider">
+                  Vibely
+                </span>
+              </Link>
+            </div>
+          )}
+
           <div className="flex items-center gap-3 sm:gap-4 ml-auto">
             <Link to="/notifications">
               <button className="btn btn-ghost btn-circle">

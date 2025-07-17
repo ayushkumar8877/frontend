@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import useAuthUser from "../hooks/useAuthUser";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getStreamToken } from "../lib/api";
 
 import {
@@ -24,14 +24,13 @@ const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY;
 
 const ChatPage = () => {
   const { id: targetUserId } = useParams();
-
   const [chatClient, setChatClient] = useState(null);
   const [channel, setChannel] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const { authUser } = useAuthUser();
-  const setUnseen = useUnseenStore((s) => s.setUnseen);
-  const clearUnseen = useUnseenStore((s) => s.clearUnseen);
+  const resetUnseen = useUnseenStore((s) => s.resetUnseen);
+  const queryClient = useQueryClient(); // ✅ Added
 
   const { data: tokenData } = useQuery({
     queryKey: ["streamToken"],
@@ -65,13 +64,9 @@ const ChatPage = () => {
         await currChannel.watch();
         await currChannel.markRead();
 
-        clearUnseen(targetUserId);
-
-        currChannel.on("message.new", (event) => {
-          if (event.user.id !== authUser._id) {
-            setUnseen(event.user.id, true);
-          }
-        });
+        // ✅ Reset unseen and refresh friends list (for online status)
+        resetUnseen(targetUserId);
+        queryClient.invalidateQueries({ queryKey: ["friends"] }); // ✅ Added line
 
         setChatClient(client);
         setChannel(currChannel);
@@ -84,7 +79,7 @@ const ChatPage = () => {
     };
 
     initChat();
-  }, [tokenData, authUser, targetUserId, clearUnseen, setUnseen]);
+  }, [tokenData, authUser, targetUserId, resetUnseen, queryClient]);
 
   const handleVideoCall = () => {
     if (channel) {
