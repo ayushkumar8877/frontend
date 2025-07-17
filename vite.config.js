@@ -12,6 +12,6 @@ export default defineConfig({
   },
   preview: {
     port: 5173,
-    allowedHosts: ['frontend-j6i2.onrender.com']
+    allowedHosts: ['vibely-chat-app-uty3.onrender.com']
   }
 })
